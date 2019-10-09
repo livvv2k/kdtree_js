@@ -13,41 +13,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// Using this object has resulted in a lot of code atrocities
-// For the love of god, just use an array...
-function Vec2D(x, y)
-{
-    this.x = x;
-    this.y = y;
-}
-
-Vec2D.prototype.clone = function()
-{
-    return new Vec2D(this.x, this.y);
-};
-
-Vec2D.prototype.isEqual = function(v)
-{
-    return v.x == this.x && v.y == this.y;
-};
-
-function Vec3D(x, y, z)
-{
-    this.x = x;
-    this.y = y;
-    this.z = z;
-}
-
-Vec3D.prototype.clone = function()
-{
-    return new Vec3D(this.x, this.y, this.z);
-};
-
-Vec3D.prototype.isEqual = function(v)
-{
-    return v.x == this.x && v.y == this.y && v.z == this.z;
-};
-
 function Node(point)
 {
     this.point = point;
@@ -74,12 +39,8 @@ KDTree.prototype.Insert = function(node, point, depth = 0)
     }
 
     let dimension = depth % this.k;
-    let dimensionAxis;
-    if (dimension == 0) dimensionAxis = "x";
-    else if (dimension == 1) dimensionAxis = "y";
-    else dimensionAxis = "z";
 
-    if (point[dimensionAxis] < node.point[dimensionAxis]) 
+    if (point[dimension] < node.point[dimension]) 
         node.left = this.Insert(node.left, point, depth + 1); 
     else
         node.right = this.Insert(node.right, point, depth + 1); 
@@ -96,13 +57,17 @@ KDTree.prototype.DeleteNode = function(node, point, depth = 0)
   
     // Find dimension of current node 
     let dimension = depth % this.k;
-    let dimensionAxis;
-    if (dimension == 0) dimensionAxis = "x";
-    else if (dimension == 1) dimensionAxis = "y";
-    else dimensionAxis = "z";
+
+    let equal = true;
+    for (let i = 0; i < point.length; i++)
+        if (point[i] != node.point[i])
+        {
+            equal = false;
+            break;
+        }
   
     // If the point to be deleted is present at root
-    if (node.point.isEqual(point)) 
+    if (equal) 
     { 
         // 2.b) If right child is not null 
         if (node.right != null) 
@@ -119,7 +84,7 @@ KDTree.prototype.DeleteNode = function(node, point, depth = 0)
         else if (node.left != null) // same as above 
         { 
             let min = this.FindMinimum(node.left, dimension); 
-            node.point = min.point.clone();
+            node.point = min.point.slice(0); // clone
             node.right = this.DeleteNode(node.left, min.point, depth+1); 
         } 
         else // If node to be deleted is leaf node 
@@ -132,7 +97,7 @@ KDTree.prototype.DeleteNode = function(node, point, depth = 0)
     } 
   
     // 2) If current node doesn't contain point, search downward 
-    if (point[dimensionAxis] < node.point[dimensionAxis]) 
+    if (point[dimension] < node.point[dimension]) 
         node.left = this.DeleteNode(node.left, point, depth+1); 
     else
         node.right = this.DeleteNode(node.right, point, depth+1);
@@ -161,32 +126,17 @@ KDTree.prototype.FindMinimum = function(node, dimension, depth = 0)
   
     // If current dimension is different then minimum can be anywhere 
     // in this subtree 
-    let x = node;
-    let y = this.FindMinimum(node.left, dimension, depth+1);
-    let z = this.FindMinimum(node.right, dimension, depth+1);
+    let a = node;
+    let b = this.FindMinimum(node.left, dimension, depth+1);
+    let c = this.FindMinimum(node.right, dimension, depth+1);
     
-    let ret = x;
-    if (dimension == 0)
-    {
-        if (y != null && y.point.x < ret.point.x)
-            ret = y; 
-        if (z != null && z.point.x < ret.point.x) 
-            ret = z;
-    }
-    else if (dimension == 1)
-    {
-        if (y != null && y.point.y < ret.point.y)
-            ret = y; 
-        if (z != null && z.point.y < ret.point.y) 
-            ret = z;
-    }
-    else
-    {
-        if (y != null && y.point.z < ret.point.z)
-            ret = y; 
-        if (z != null && z.point.z < ret.point.z) 
-            ret = z;
-    }
+    let ret = a;
+
+    if (b != null && b.point[dimension] < ret.point[dimension])
+        ret = b; 
+    if (c != null && c.point[dimension] < ret.point[dimension]) 
+        ret = c;
+
     return ret;
 };
 
@@ -195,12 +145,12 @@ KDTree.prototype.FindMinimum = function(node, dimension, depth = 0)
 {
     let kd = new KDTree(2);
     let points = [
-        new Vec2D(30, 40),
-        new Vec2D(10, 12),
-        new Vec2D(5, 25),
-        new Vec2D(70, 70),
-        new Vec2D(50, 30),
-        new Vec2D(35, 45)
+        [30, 40],
+        [10, 12],
+        [5, 25],
+        [70, 70],
+        [50, 30],
+        [35, 45]
     ];
 
     for (let point of points)
